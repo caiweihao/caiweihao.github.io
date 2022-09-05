@@ -1,4 +1,4 @@
-[SimpleButterKnife]([https://www.runoob.com](https://github.com/caiweihao/SimpleButterKnife))
+[SimpleButterKnife](https://github.com/caiweihao/SimpleButterKnife)
 ========
 
 `SimpleButterKnife` 用两种方式来实现findViewById功能。
