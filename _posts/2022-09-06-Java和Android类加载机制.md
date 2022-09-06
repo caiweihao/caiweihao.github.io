@@ -56,4 +56,46 @@ protected Class<?> loadClass(String name, boolean resolve)
 双亲委派机制的优势：采用双亲委派模式的是好处是Java类随着它的类加载器一起具备了一种带有优先级的层次关系，通过这种层级关可以避免类的重复加载，当父亲已经加载了该类时，就没有必要子ClassLoader再加载一次。其次是考虑到安全因素，java核心api中定义类型不会被随意替换，假设通过网络传递一个名为java.lang.Integer的类，通过双亲委托模式传递到启动类加载器，而启动类加载器在核心Java API发现这个名字的类，发现该类已被加载，并不会重新加载网络传递的过来的java.lang.Integer，而直接返回已加载过的Integer.class，这样便可以防止核心API库被随意篡改。
 向上委托保证了核心Java API不会被恶意替换（安全），向下委托保证类能够被加载。
 
-Java加载的是class， Android加载的是dex（相同常量会缩减为一份）。
+Java加载的是class， Android加载的是dex（相同常量会缩减为一份），一个dex可以有多个class。
+
+Android热修复实现原理
+-----------------
+1. 经过对PathClassLoader、DexClassLoader、BaseDexClassLoader、DexPathList的分析，我们知道，安卓的类加载器在加载一个类时会先从自身DexPathList对象中的Element数组中获取（Element[] dexElements）到对应的类，之后再加载。采用的是数组遍历的方式，不过注意，遍历出来的是一个个的dex文件。
+2. 在for循环中，首先遍历出来的是dex文件，然后再是从dex文件中获取class，所以，我们只要让修复好的class打包成一个dex文件，放于Element数组的第一个元素，这样就能保证获取到的class是最新修复好的class了（当然，有bug的class也是存在的，不过是放在了Element数组中比修复bug的dex靠后的位置，所以没有机会被加载，类不会重复加载）。
+3. 当ClassLoader加载到正确的类之后就不会去加载错误的类了 ，所以可以在dexElements中将正确的类放在错误类的前面就可以了。找到修复bug的类之后，将修复bug的类打包程dex文件，将其放在dexElements中的最前方。
+
+修复代码如下：
+
+```java
+try {
+            String fileName = "hotfix-debug.dex";
+            File apk = new File(getCacheDir() + fileName);
+            ClassLoader classLoader = getClassLoader();
+            Class loaderClass = BaseDexClassLoader.class;
+            Field pathListField = loaderClass.getDeclaredField("pathList");
+            pathListField.setAccessible(true);
+            Object pathListObject = pathListField.get(classLoader);
+            Class pathListClass = pathListObject.getClass();
+            Field dexElementsField = pathListClass.getDeclaredField("dexElements");
+            dexElementsField.setAccessible(true);
+            Object dexElementsObject = dexElementsField.get(pathListObject);
+
+            PathClassLoader newClassLoader = new PathClassLoader(apk.getPath(), null);
+            Object newPathListObject = pathListField.get(newClassLoader);
+            Object newDexElementsObject = dexElementsField.get(newPathListObject);
+            int oldLength = Array.getLength(dexElementsObject);
+            int newLength = Array.getLength(newDexElementsObject);
+            Object concateObject = Array.newInstance(dexElementsObject.getClass().getComponentType(), oldLength + newLength);
+            for (int i = 0; i < newLength; i++) {
+                Array.set(concateObject, i, Array.get(newDexElementsObject, i));
+            }
+            for (int i = 0; i < oldLength; i++) {
+                Array.set(concateObject, newLength + i, Array.get(dexElementsObject, i));
+            }
+            dexElementsField.set(pathListObject, concateObject);
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+```
