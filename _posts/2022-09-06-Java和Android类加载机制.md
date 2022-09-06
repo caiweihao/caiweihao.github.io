@@ -43,11 +43,10 @@ protected Class<?> loadClass(String name, boolean resolve)
     }
 
 ```
-```mermaid
-graph TD
-A[方形] --> B(圆角)
-    B --> C{条件a}
-    C --> |a=1| D[结果1]
-    C --> |a=2| E[结果2]
-    F[竖向流程图]
-```
+| 类加载器名称 | 功能 | 居中对齐 |
+| :----:| :----:  | :----: |
+| 启动类加载器 BootStrapClassLoader | 启动类加载器主要加载的是JVM自身需要的类，这个类加载使用C++语言实现的，负责加载<JAVA_HOME>/lib目录下的类，是虚拟机自身的一部分。 | 单元格 |
+| 扩展类加载器 ExtensionClassLoader | 扩展类加载器是由Java语言实现的，是Launcher的静态内部类，它负责加载<JAVA_HOME>/lib/ext目录下或者由系统变量-Djava.ext.dir指定位路径中的类库。 | 单元格 |
+| 系统类加载器 SystemClassLoader | 它负责加载系统类路径java -classpath或-D java.class.path 指定路径下的类库，也就是我们经常用到的classpath路径，开发者可以直接使用系统类加载器，一般情况下该类加载是程序中默认的类加载器，通过ClassLoader#getSystemClassLoader()方法可以获取到该类加载器 | 单元格 |
+| 扩展类加载器 ExtensionClassLoade | 负责记载自己定义位置的加载器 | 单元格 |
+
