@@ -21,7 +21,12 @@ dependencies {
 
 ```
    
-Java的JSON解析和Kotlin有很大区别，
+Java的JSON解析和Kotlin有很大区别：
+| JSON编解码异同| Java | Kotlin|
+| :----:| :----:  | :----:  | 
+| 属性是否为空 | Java的属性是可以为空的，所以从字符串解码时候，相应的属性对（名称和值）可以缺失 |没有默认值的属性不可以缺失 |
+| 类名是否需要标记 | 不需要 |需要用@Serializable注解进行标识 |
+|倾向于使用什么技术 | 关键字如transient |需要用 @Transient注解进行标识 |
 ### 反射相关功能
 
 ```java
